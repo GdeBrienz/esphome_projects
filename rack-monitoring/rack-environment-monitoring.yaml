@@ -1,0 +1,188 @@
+substitutions:
+  # These are fallback default values in case the local file forgets to define them
+  device_name: "rack_environment_sensor"
+  device_friendly_name: "Rack Environment Sensor"
+  # Bump this version number when you push an update to GitHub!
+  project_version: "0.1.0" 
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${device_friendly_name}
+  project:
+    name: "GdeBrienz.esphome_projects"
+    version: ${project_version}
+
+esp32:
+  board: esp32-poe-iso
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# ---------------------------------------------------------
+# NETWORK CONFIGURATION (Ethernet Only)
+# ---------------------------------------------------------
+# The Wi-Fi and Captive Portal blocks are completely removed.
+# This ensures the radios stay off.
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk:
+    mode: CLK_OUT
+    pin: 17
+  phy_addr: 0
+  power_pin: GPIO12
+
+# ---------------------------------------------------------
+# I2C BUS CONFIGURATION
+# ---------------------------------------------------------
+# The Olimex UEXT connector uses GPIO16 for SCL and GPIO13 for SDA
+# Frequency set to 100kHz for stability over the UEXT cable
+i2c:
+  sda: GPIO13
+  scl: GPIO16
+  scan: true
+  id: i2c_bus
+  frequency: 100kHz
+
+# ---------------------------------------------------------
+# UI CONTROLS (Input variables for Home Assistant)
+# ---------------------------------------------------------
+number:
+  - platform: template
+    name: "Temperature Calibration Offset"
+    id: temp_offset
+    entity_category: config
+    min_value: -10.0
+    max_value: 10.0
+    step: 0.1
+    initial_value: -1.4
+    restore_value: true
+    optimistic: true
+    mode: box
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer-minus"
+
+  - platform: template
+    name: "Humidity Calibration Offset"
+    id: humidity_offset
+    entity_category: config
+    min_value: -20.0
+    max_value: 20.0
+    step: 0.1
+    initial_value: 0.0
+    restore_value: true
+    optimistic: true
+    mode: box
+    unit_of_measurement: "%"
+    icon: "mdi:water-percent"
+
+  - platform: template
+    name: "Pressure Calibration Offset"
+    id: pressure_offset
+    entity_category: config
+    min_value: -50.0
+    max_value: 50.0
+    step: 0.1
+    initial_value: 0.0
+    restore_value: true
+    optimistic: true
+    mode: box
+    unit_of_measurement: "hPa"
+    icon: "mdi:gauge"
+
+  - platform: template
+    name: "eCO2 Calibration Offset"
+    id: eco2_offset
+    entity_category: config
+    min_value: -500.0
+    max_value: 500.0
+    step: 1.0
+    initial_value: 0.0
+    restore_value: true
+    optimistic: true
+    mode: box
+    unit_of_measurement: "ppm"
+    icon: "mdi:molecule-co2"
+
+  - platform: template
+    name: "TVOC Calibration Offset"
+    id: tvoc_offset
+    entity_category: config
+    min_value: -500.0
+    max_value: 500.0
+    step: 1.0
+    initial_value: 0.0
+    restore_value: true
+    optimistic: true
+    mode: box
+    unit_of_measurement: "ppb"
+    icon: "mdi:air-filter"
+
+# ---------------------------------------------------------
+# SENSOR CONFIGURATION
+# ---------------------------------------------------------
+sensor:
+  # 1. BME280 Sensor (Temperature, Humidity, Pressure)
+  # The SDO pin is tied to GND on the MOD-ENV board, setting the address to 0x76
+  - platform: bme280_i2c
+    address: 0x77
+    update_interval: 60s
+    iir_filter: 16x
+    temperature:
+      id: rack_temp
+      name: "Temperature"
+      oversampling: 16x
+      filters:
+        - lambda: return x + id(temp_offset).state;
+    pressure:
+      name: "Pressure"
+      oversampling: 16x
+      filters:
+        - lambda: return x + id(pressure_offset).state;
+    humidity:
+      id: rack_humidity
+      name: "Humidity"
+      oversampling: 16x
+      filters:
+        - lambda: return x + id(humidity_offset).state;
+
+  # 2. CCS811 Sensor (eCO2, TVOC)
+  # The ADDR pin is tied to GND on the MOD-ENV board, setting the address to 0x5A
+  - platform: ccs811
+    address: 0x5A
+    update_interval: 10s
+    # The CCS811 requires ambient temperature and humidity data for 
+    # internal environmental compensation to provide accurate gas readings.
+    temperature: rack_temp
+    humidity: rack_humidity
+    eco2:
+      name: "eCO2"
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 1
+        - lambda: return x + id(eco2_offset).state;
+    tvoc:
+      name: "TVOC"
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 1
+        - lambda: return x + id(tvoc_offset).state;
+  
+  - platform: internal_temperature
+    name: "ESP32 Internal Temperature"
+    entity_category: diagnostic
+
+  - platform: uptime
+    name: "Monitor Uptime"
+    entity_category: diagnostic
+
+text_sensor:
+  - platform: ethernet_info
+    ip_address:
+      name: "Monitor IP Address"
+      entity_category: diagnostic
