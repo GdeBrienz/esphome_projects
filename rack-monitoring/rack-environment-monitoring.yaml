@@ -147,7 +147,27 @@ sensor:
       name: "Humidity"
       oversampling: 16x
       filters:
-        - lambda: return x + id(humidity_offset).state;
+        - lambda: |-
+            // 1. Calculate the 'true' ambient humidity based on temperature delta
+            // t_true is the corrected ambient temperature (already filtered)
+            // t_raw is the actual temperature the physical sensor is experiencing (self-heating)
+            float t_true = id(rack_temp).state;
+            float t_raw = t_true - id(temp_offset).state;
+            float rh_raw = x / 100.0;
+            
+            // Magnus formula constants for Dew Point calculation
+            const float a = 17.625;
+            const float b = 243.04;
+            
+            // Calculate actual water vapor pressure/Dew Point at sensor temperature
+            float gamma = (a * t_raw) / (b + t_raw) + log(rh_raw);
+            float dew_point = (b * gamma) / (a - gamma);
+            
+            // Calculate corrected Relative Humidity at the ambient temperature
+            float rh_true = 100.0 * exp((a * dew_point) / (b + dew_point)) / exp((a * t_true) / (b + t_true));
+            
+            // 2. Apply the manual static offset from Home Assistant
+            return rh_true + id(humidity_offset).state;
 
   # 2. CCS811 Sensor (eCO2, TVOC)
   # The ADDR pin is tied to GND on the MOD-ENV board, setting the address to 0x5A
