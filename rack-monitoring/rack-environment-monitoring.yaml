@@ -3,7 +3,7 @@ substitutions:
   device_name: "rack_environment_sensor"
   device_friendly_name: "Rack Environment Sensor"
   # Bump this version number when you push an update to GitHub!
-  project_version: "0.1.0" 
+  project_version: "0.2.0" 
 
 esphome:
   name: ${device_name}
