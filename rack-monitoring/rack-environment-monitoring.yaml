@@ -5,7 +5,7 @@ substitutions:
   # Empty by default so new sensors use Automatic Baseline Correction (ABC) to settle
   ccs811_baseline_config: ""
   # Bump this version number when you push an update to GitHub!
-  project_version: "0.3.0" 
+  project_version: "0.3.1" 
 
 esphome:
   name: ${device_name}
@@ -217,7 +217,3 @@ text_sensor:
     entity_category: diagnostic
     lambda: |-
       return {"${project_version}"};
-  - platform: version
-    name: "ESPHome Version"
-    icon: "mdi:home-assistant"
-    entity_category: diagnostic
