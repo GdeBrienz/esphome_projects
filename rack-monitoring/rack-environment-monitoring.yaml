@@ -5,7 +5,7 @@ substitutions:
   # Empty by default so new sensors use Automatic Baseline Correction (ABC) to settle
   ccs811_baseline_config: ""
   # Bump this version number when you push an update to GitHub!
-  project_version: "0.3.1" 
+  project_version: "0.4.0" 
 
 esphome:
   name: ${device_name}
@@ -18,6 +18,9 @@ esp32:
   board: esp32-poe-iso
   framework:
     type: esp-idf
+    advanced:
+      minimum_chip_revision: "3.1"
+      sram1_as_iram: true
 
 # Enable logging
 logger:
