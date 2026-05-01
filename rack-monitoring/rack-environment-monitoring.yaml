@@ -2,10 +2,8 @@ substitutions:
   # These are fallback default values in case the local file forgets to define them
   device_name: "rack_environment_sensor"
   device_friendly_name: "Rack Environment Sensor"
-  # Empty by default so new sensors use Automatic Baseline Correction (ABC) to settle
-  ccs811_baseline_config: ""
   # Bump this version number when you push an update to GitHub!
-  project_version: "0.4.2" 
+  project_version: "0.4.3" 
 
 esphome:
   name: ${device_name}
@@ -178,13 +176,11 @@ sensor:
   # 2. CCS811 Sensor (eCO2, TVOC)
   # The ADDR pin is tied to GND on the MOD-ENV board, setting the address to 0x5A
   - platform: ccs811
+    id: ccs811_sensor  # <-- ADDED ID HERE so we can inject the baseline locally later
     address: 0x5A
     update_interval: 10s
     # The CCS811 requires ambient temperature and humidity data for 
     # internal environmental compensation to provide accurate gas readings.
-    # If the local device sets this to "", this line is completely ignored.
-    # If the local device sets it to "baseline: 0xXXXX", it locks the calibration.
-    ${ccs811_baseline_config}
     temperature: rack_temp
     humidity: rack_humidity
     eco2:
