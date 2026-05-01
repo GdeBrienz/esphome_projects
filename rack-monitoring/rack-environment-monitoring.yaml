@@ -2,8 +2,10 @@ substitutions:
   # These are fallback default values in case the local file forgets to define them
   device_name: "rack_environment_sensor"
   device_friendly_name: "Rack Environment Sensor"
+  # Providing a fallback baseline prevents compilation errors if a local device omits it
+  ccs811_baseline: "0x8ABB"
   # Bump this version number when you push an update to GitHub!
-  project_version: "0.2.0" 
+  project_version: "0.2.1" 
 
 esphome:
   name: ${device_name}
@@ -176,6 +178,7 @@ sensor:
     update_interval: 10s
     # The CCS811 requires ambient temperature and humidity data for 
     # internal environmental compensation to provide accurate gas readings.
+    baseline: ${ccs811_baseline}
     temperature: rack_temp
     humidity: rack_humidity
     eco2:
